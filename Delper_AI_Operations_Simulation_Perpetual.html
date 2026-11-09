@@ -1,0 +1,90 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Delper AI Operations Dashboard: Perpetual Simulation</title>
+<style>
+:root{--bg:#fff;--fg:#1b1f24;--muted:#5b6470;--line:#d8dde3;--card:#f6f8fa;--ok:#2E7D32;--warn:#B26A00;--gap:#B23B3B}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#0f1419;--fg:#e6e9ed;--muted:#9aa4af;--line:#2a323b;--card:#161d25;--ok:#66BB6A;--warn:#FFB74D;--gap:#EF8080}}
+html,body{background:var(--bg);color:var(--fg);font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;margin:0}
+body{padding:16px;max-width:1200px;margin:0 auto}
+h1{font-size:1.4rem;margin:0 0 4px} h2{font-size:1.05rem;margin:18px 0 8px}
+.sub{color:var(--muted);font-size:.9rem}
+.controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:12px 0}
+button{font:inherit;padding:10px 18px;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--fg);cursor:pointer}
+button.on{background:var(--ok);color:#fff;border-color:var(--ok)}
+.state{font-weight:600}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.k{color:var(--muted);font-size:.78rem} .v{font-size:1.1rem;font-weight:600;margin-top:2px}
+.wrap{overflow-x:auto;border:1px solid var(--line);border-radius:10px}
+table{border-collapse:collapse;width:100%;font-size:.84rem}
+th,td{padding:7px 8px;border-bottom:1px solid var(--line);text-align:left}
+th{color:var(--muted);font-weight:600;background:var(--card)}
+.pill{display:inline-block;padding:2px 8px;border-radius:99px;font-size:.75rem;border:1px solid var(--muted);color:var(--muted);white-space:nowrap}
+.live{border-color:var(--ok);color:var(--ok)} .conn{border-color:var(--ok);color:var(--ok)} .gap{border-color:var(--gap);color:var(--gap)}
+.note{color:var(--muted);font-size:.82rem;margin-top:10px}
+</style></head><body>
+<h1>Delper AI Operations Dashboard: Perpetual Simulation</h1>
+<p class="sub"><strong>Illustrative only.</strong> This replays the plan's launch timeline on a loop, bringing agents and channels live in the months set by the Launch Master Plan. Escalation and payment counts are generated, not real. It does not connect to any system, and it does not affect any agent, provider or payment. GK Bharta holds the kill switch and finance control throughout.</p>
+<div class="controls">
+<button id="start">Start</button><button id="pause">Pause</button><button id="reset">Reset</button>
+<span class="state" id="state">Paused at Month 1</span>
+<label class="sub">Speed <select id="speed"><option value="2000">Slow</option><option value="1000" selected>Normal</option><option value="400">Fast</option></select></label>
+</div>
+<div class="cards">
+<div class="card"><div class="k">Cycle</div><div class="v" id="cycle">1</div></div>
+<div class="card"><div class="k">Month of launch</div><div class="v" id="month">1</div></div>
+<div class="card"><div class="k">Agents live</div><div class="v" id="live">0 of 9</div></div>
+<div class="card"><div class="k">Channels connected</div><div class="v" id="conn">0 of 12</div></div>
+<div class="card"><div class="k">Escalations this month (generated)</div><div class="v" id="esc">0</div></div>
+<div class="card"><div class="k">Payments queued (2-day lead, GK Bharta)</div><div class="v" id="pay">0</div></div>
+<div class="card"><div class="k">Kill switch holder</div><div class="v">GK Bharta</div></div>
+<div class="card"><div class="k">Open gaps</div><div class="v" id="gaps">1</div></div>
+</div>
+<h2>AI agents</h2>
+<div class="wrap"><table><thead><tr><th>#</th><th>Agent</th><th>Live from month</th><th>Status this month</th></tr></thead><tbody id="agents"></tbody></table></div>
+<h2>Channel connectors</h2>
+<div class="wrap"><table><thead><tr><th>Channel</th><th>Connect from month</th><th>Status this month</th></tr></thead><tbody id="channels"></tbody></table></div>
+<p class="note">Exchanges and DEX pools stay in the gap state: no agent in the register owns them. The cycle restarts at Month 1 after Month 24 so the replay runs on indefinitely.</p>
+<script>
+const D={"agents": [[1, "Partner and supplier onboarding", 5], [2, "Consumer onboarding and opinion poll", 6], [3, "Support and onboarding chatbot", 7], [4, "Sales prospecting", 3], [5, "Settlement and SLA", 8], [6, "AML/KYC and fraud screening", 6], [7, "Ad and survey mediation", 3], [8, "Compliance monitoring", 4], [9, "Security triage", 2]], "channels": [["Shopify and WooCommerce", 7, [1, 5], false], ["ONDC", 9, [2, 5], false], ["Proxtera (not verified)", null, [], false], ["Delper Marketplace", 7, [2, 5], false], ["Procurement platforms", 5, [1, 5], false], ["Contour / Marco Polo", 6, [5], false], ["project44 and Flexport", 6, [5], false], ["POS and merchant networks", 7, [3, 5], false], ["Stripe, Adyen, Worldpay", 7, [3, 5], false], ["Ad mediation platforms", 4, [7], false], ["Survey panels", 4, [2, 7], false], ["Exchanges and DEX pools", null, [], true]]};
+const MAXM=24;
+let m=1,cycle=1,timer=null,running=false;
+// deterministic pseudo-random so each cycle is repeatable
+function rnd(seed){ let x=Math.sin(seed*9301+49297)*233280; return x-Math.floor(x); }
+function liveAgents(mo){ return D.agents.filter(a=>mo>=a.live); }
+function connChannels(mo){ return D.channels.filter(c=>c[1]!==null && mo>=c[1]); }
+function draw(){
+  const L=liveAgents(m), C=connChannels(m);
+  const seedBase=cycle*100+m;
+  const esc=L.length? Math.floor(rnd(seedBase)*(L.length+1)) : 0;
+  const pay=Math.floor(rnd(seedBase+7)*(4+L.length))*(L.some(a=>a.id===6)?1:0);
+  document.getElementById('cycle').textContent=cycle;
+  document.getElementById('month').textContent=m;
+  document.getElementById('live').textContent=L.length+' of 9';
+  document.getElementById('conn').textContent=C.length+' of 12';
+  document.getElementById('esc').textContent=esc;
+  document.getElementById('pay').textContent=pay;
+  document.getElementById('gaps').textContent='1';
+  document.getElementById('agents').innerHTML=D.agents.map(a=>{
+    const on=m>=a.live;
+    return `<tr><td>${a.id}</td><td>${a.name}</td><td>Month ${a.live}</td><td><span class="pill ${on?'live':''}">${on?'Live':'Not yet live'}</span></td></tr>`;}).join('');
+  document.getElementById('channels').innerHTML=D.channels.map(c=>{
+    const gap=c[3]; const on=!gap && c[1]!==null && m>=c[1];
+    const label=gap?'Gap: no agent owner':(c[1]===null?'Not verified':(on?'Connected':'Not yet connected'));
+    const cls=gap?'gap':(on?'conn':'');
+    return `<tr><td>${c[0]}</td><td>${c[1]===null?'Not set':'Month '+c[1]}</td><td><span class="pill ${cls}">${label}</span></td></tr>`;}).join('');
+}
+function setState(t){document.getElementById('state').textContent=t;}
+function tick(){
+  m++;
+  if(m>MAXM){ m=1; cycle++; }
+  draw(); setState(running?'Running, cycle '+cycle:'Paused at Month '+m+', cycle '+cycle);
+}
+function start(){ if(running) return; running=true; document.getElementById('start').classList.add('on'); document.getElementById('pause').classList.remove('on'); setState('Running, cycle '+cycle); timer=setInterval(tick,+document.getElementById('speed').value); }
+function pause(){ running=false; clearInterval(timer); document.getElementById('start').classList.remove('on'); document.getElementById('pause').classList.add('on'); setState('Paused at Month '+m+', cycle '+cycle); }
+function reset(){ pause(); m=1; cycle=1; document.getElementById('pause').classList.remove('on'); draw(); setState('Paused at Month 1, cycle 1'); }
+document.getElementById('start').onclick=start;
+document.getElementById('pause').onclick=pause;
+document.getElementById('reset').onclick=reset;
+document.getElementById('speed').onchange=()=>{ if(running){ clearInterval(timer); timer=setInterval(tick,+document.getElementById('speed').value);} };
+draw();
+</script></body></html>

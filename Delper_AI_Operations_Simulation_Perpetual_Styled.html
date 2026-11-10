@@ -1,0 +1,98 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Delper AI Operations: Perpetual Simulation</title>
+<style>
+:root{--bg:#070b13;--panel:#0d1624;--panel2:#101c2e;--line:#1c2d45;--fg:#dce6f0;--muted:#6d8099;--cyan:#38bdf8;--green:#22c55e;--amber:#f59e0b;--red:#ef4444}
+html,body{background:var(--bg);color:var(--fg);font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;margin:0}
+body{padding:18px;max-width:1400px;margin:0 auto}
+.banner{background:linear-gradient(90deg,#0b2236,#0d1624 50%,#0b2236);border:1px solid var(--line);border-radius:10px;padding:14px 18px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px}
+.banner h1{font-size:1.2rem;margin:0}
+.banner .tag{color:var(--cyan);font-size:.8rem;letter-spacing:.16em;text-transform:uppercase}
+.controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:12px 0}
+button{font:inherit;padding:9px 16px;border-radius:8px;border:1px solid var(--line);background:var(--panel2);color:var(--fg);cursor:pointer}
+button.on{background:#14532d;border-color:var(--green)}
+.state{font-weight:600;color:var(--cyan)}
+select{font:inherit;padding:6px;border-radius:6px;background:var(--panel2);color:var(--fg);border:1px solid var(--line)}
+.grid{display:grid;grid-template-columns:repeat(12,1fr);gap:12px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px;min-width:0}
+.panel h2{font-size:.76rem;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:0 0 10px;font-weight:600}
+.s3{grid-column:span 3}.s4{grid-column:span 4}.s5{grid-column:span 5}.s6{grid-column:span 6}.s7{grid-column:span 7}.s12{grid-column:span 12}
+@media(max-width:900px){.s3,.s4,.s5,.s6,.s7{grid-column:span 12}}
+.stat{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--line);font-size:.9rem}
+.stat:last-child{border-bottom:0}
+.stat b{font-size:1.02rem}
+.green{color:var(--green)}.amber{color:var(--amber)}.red{color:var(--red)}.cyan{color:var(--cyan)}
+.pill{font-size:.72rem;padding:2px 8px;border-radius:99px;border:1px solid var(--muted);color:var(--muted);white-space:nowrap}
+.pill.live{border-color:var(--green);color:var(--green)}.pill.conn{border-color:var(--green);color:var(--green)}.pill.gap{border-color:var(--red);color:var(--red)}
+table{border-collapse:collapse;width:100%;font-size:.84rem}
+th,td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:left}
+th{color:var(--muted);font-weight:600}
+.note{color:var(--muted);font-size:.8rem;margin-top:10px}
+.mission{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:12px}
+.mission div{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px;text-align:center;font-weight:600;letter-spacing:.06em;font-size:.9rem}
+</style></head><body>
+<div class="banner"><h1>Delper AI Operations: Perpetual Simulation</h1><div class="tag">AI governance. Real-time control. Trusted operations.</div></div>
+<div class="controls">
+<button id="start">Start</button><button id="pause">Pause</button><button id="reset">Reset</button>
+<span class="state" id="state">Paused at Month 1, cycle 1</span>
+<label>Speed <select id="speed"><option value="2000">Slow</option><option value="1000" selected>Normal</option><option value="400">Fast</option></select></label>
+</div>
+<div class="grid">
+ <div class="panel s3"><h2>Simulated status</h2>
+  <div class="stat"><span>Cycle</span><b id="cycle">1</b></div>
+  <div class="stat"><span>Month of launch</span><b id="month">1</b></div>
+  <div class="stat"><span>Agents live</span><b class="green" id="live">0 of 9</b></div>
+  <div class="stat"><span>Channels connected</span><b class="cyan" id="conn">0 of 12</b></div>
+  <div class="stat"><span>Gaps (no agent owner)</span><b class="red">1</b></div>
+ </div>
+ <div class="panel s4"><h2>Generated activity (illustrative)</h2>
+  <div class="stat"><span>Escalations this month</span><b id="esc">0</b></div>
+  <div class="stat"><span>Payments queued (2-day lead)</span><b id="pay">0</b></div>
+  <div class="stat"><span>Kill switch holder</span><b class="cyan">GK Bharta</b></div>
+  <div class="note">Counts are generated for the replay, not real. Nothing connects to a live system.</div>
+ </div>
+ <div class="panel s5"><h2>Gate status</h2>
+  <div class="stat"><span>Agents gated until market sign-off</span><b class="amber" id="gated">9</b></div>
+  <div class="stat"><span>Finance and payments</span><b class="cyan">GK Bharta only</b></div>
+  <div class="stat"><span>Compliance sign-off</span><b>CCO</b></div>
+ </div>
+ <div class="panel s6"><h2>AI agents</h2>
+  <table><thead><tr><th>#</th><th>Agent</th><th>Live from</th><th>Status</th></tr></thead><tbody id="agents"></tbody></table>
+ </div>
+ <div class="panel s6"><h2>Channel connectors</h2>
+  <table><thead><tr><th>Channel</th><th>Connect from</th><th>Status</th></tr></thead><tbody id="channels"></tbody></table>
+ </div>
+</div>
+<div class="mission"><div>OUR MISSION: SAFE AI.</div><div>RESPONSIBLE AI.</div><div>TRUSTED AI.</div></div>
+<p class="note">The timeline replays the Launch Master Plan on a loop: the cycle restarts after Month 24. Agents and channels come live in the plan's months, and the exchange gap stays open because no agent owns it.</p>
+<script>
+const D={"agents": [[1, "Partner and supplier onboarding", 5], [2, "Consumer onboarding and opinion poll", 6], [3, "Support and onboarding chatbot", 7], [4, "Sales prospecting", 3], [5, "Settlement and SLA", 8], [6, "AML/KYC and fraud screening", 6], [7, "Ad and survey mediation", 3], [8, "Compliance monitoring", 4], [9, "Security triage", 2]], "channels": [["Shopify and WooCommerce", 7, false], ["ONDC", 9, false], ["Proxtera (not verified)", null, false], ["Delper Marketplace", 7, false], ["Procurement platforms", 5, false], ["Contour / Marco Polo", 6, false], ["project44 and Flexport", 6, false], ["POS and merchant networks", 7, false], ["Stripe, Adyen, Worldpay", 7, false], ["Ad mediation platforms", 4, false], ["Survey panels", 4, false], ["Exchanges and DEX pools", null, true]]};
+const MAXM=24;
+let m=1,cycle=1,timer=null,running=false;
+function rnd(seed){ const x=Math.sin(seed*9301+49297)*233280; return x-Math.floor(x); }
+function draw(){
+  const L=D.agents.filter(a=>m>=a[2]);
+  const C=D.channels.filter(c=>c[1]!==null && m>=c[1] && !c[2]);
+  const base=cycle*100+m;
+  const esc=L.length?Math.floor(rnd(base)*(L.length+1)):0;
+  const pay=L.some(a=>a[0]===6)?Math.floor(rnd(base+7)*(4+L.length)):0;
+  document.getElementById('cycle').textContent=cycle;
+  document.getElementById('month').textContent=m;
+  document.getElementById('live').textContent=L.length+' of 9';
+  document.getElementById('conn').textContent=C.length+' of 12';
+  document.getElementById('gated').textContent=9-L.length;
+  document.getElementById('esc').textContent=esc;
+  document.getElementById('pay').textContent=pay;
+  document.getElementById('agents').innerHTML=D.agents.map(a=>{const on=m>=a[2];return `<tr><td>${a[0]}</td><td>${a[1]}</td><td>Month ${a[2]}</td><td><span class="pill ${on?'live':''}">${on?'Live':'Gated'}</span></td></tr>`;}).join('');
+  document.getElementById('channels').innerHTML=D.channels.map(c=>{const gap=c[2];const on=!gap&&c[1]!==null&&m>=c[1];const lab=gap?'Gap: no owner':(c[1]===null?'Not verified':(on?'Connected':'Not yet'));const cls=gap?'gap':(on?'conn':'');return `<tr><td>${c[0]}</td><td>${c[1]===null?'Not set':'Month '+c[1]}</td><td><span class="pill ${cls}">${lab}</span></td></tr>`;}).join('');
+}
+function setState(t){document.getElementById('state').textContent=t;}
+function tick(){ m++; if(m>MAXM){ m=1; cycle++; } draw(); setState(running?'Running, cycle '+cycle:'Paused at Month '+m+', cycle '+cycle); }
+function start(){ if(running) return; running=true; document.getElementById('start').classList.add('on'); document.getElementById('pause').classList.remove('on'); setState('Running, cycle '+cycle); timer=setInterval(tick,+document.getElementById('speed').value); }
+function pause(){ running=false; clearInterval(timer); document.getElementById('start').classList.remove('on'); document.getElementById('pause').classList.add('on'); setState('Paused at Month '+m+', cycle '+cycle); }
+function reset(){ pause(); m=1; cycle=1; document.getElementById('pause').classList.remove('on'); draw(); setState('Paused at Month 1, cycle 1'); }
+document.getElementById('start').onclick=start;
+document.getElementById('pause').onclick=pause;
+document.getElementById('reset').onclick=reset;
+document.getElementById('speed').onchange=()=>{ if(running){ clearInterval(timer); timer=setInterval(tick,+document.getElementById('speed').value);} };
+draw();
+</script></body></html>
